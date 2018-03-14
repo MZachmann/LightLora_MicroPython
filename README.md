@@ -28,9 +28,22 @@ txt = "Hello World"
 lru.sendPacket(0xff, 0x11, txt.encode()) # random dst, src at
 ```
 
+The packet definition is:
+```python
+class LoraPacket:
+	def __init__(self):
+		self.srcAddress = None
+		self.dstAddress = None
+		self.srcLineCount = None
+		self.payLength = None
+		self.msgTxt = None
+		self.rssi = None
+		self.snr = None
+```
+
 Customization
 ---
 The ports for the LoRa device are set in spicontrol.py for now.
 
-The _doTransmit and _doReceive methods in lorautil.LoraUtil are the callbacks on interrupt.
+The `_doTransmit` and `_doReceive` methods in lorautil.LoraUtil are the callbacks on interrupt.
 
