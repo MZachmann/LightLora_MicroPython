@@ -95,7 +95,11 @@ class SX127x:
 		self.parameters = parameters
 		self._onReceive = onReceive	 # the onreceive function
 		self._onTransmit = onTransmit   # the ontransmit function
-		self._lock = True
+		self.doAcquire = hasattr(_thread, 'allocate_lock') # micropython vs loboris
+		if self.doAcquire:
+			self._lock = _thread.allocate_lock()
+		else:
+			self._lock = True
 		self._spiControl = spiControl   # the spi wrapper - see spicontrol.py
 		self.irqPin = spiControl.getIrqPin() # a way to need loracontrol only in spicontrol
 
@@ -185,10 +189,18 @@ class SX127x:
 
 	def acquire_lock(self, lock=False):
 		if self._lock:
-			if lock:
-				_thread.lock()
+			# we have a lock object
+			if self.doAcquire:
+				if lock:
+					self._lock.acquire()
+				else:
+					self._lock.release()
+			# else lock the thread hard
 			else:
-				_thread.unlock()
+				if lock:
+					_thread.lock()
+				else:
+					_thread.unlock()
 
 	def println(self, string, implicitHeader=False):
 		self.acquire_lock(True)  # wait until RX_Done, lock and begin writing.
