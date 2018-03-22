@@ -96,9 +96,9 @@ class SX127x:
 		self._onReceive = onReceive	 # the onreceive function
 		self._onTransmit = onTransmit   # the ontransmit function
 		self.doAcquire = hasattr(_thread, 'allocate_lock') # micropython vs loboris
-		if self.doAcquire:
+		if self.doAcquire :
 			self._lock = _thread.allocate_lock()
-		else:
+		else :
 			self._lock = True
 		self._spiControl = spiControl   # the spi wrapper - see spicontrol.py
 		self.irqPin = spiControl.getIrqPin() # a way to need loracontrol only in spicontrol
@@ -237,17 +237,15 @@ class SX127x:
 			level = min(max(level, 2), 17)
 			self.writeRegister(REG_PA_CONFIG, PA_BOOST | (level - 2))
 
+	# set the frequency band. passed in Hz
+	# Frf register setting = Freq / FSTEP where
+	# FSTEP = FXOSC/2**19 where FXOSC=32MHz. So FSTEP==61.03515625
 	def setFrequency(self, frequency):
 		self._frequency = frequency
-		frfs = {169E6: (42, 64, 0),
-				433E6: (108, 64, 0),
-				434E6: (108, 128, 0),
-				866E6: (216, 128, 0),
-				868E6: (217, 0, 0),
-				915E6: (228, 192, 0)}
-		self.writeRegister(REG_FRF_MSB, frfs[frequency][0])
-		self.writeRegister(REG_FRF_MID, frfs[frequency][1])
-		self.writeRegister(REG_FRF_LSB, frfs[frequency][2])
+		frfs = (int)(frequency / 61.03515625)
+		self.writeRegister(REG_FRF_MSB, frfs >> 16)
+		self.writeRegister(REG_FRF_MID, frfs >> 8)
+		self.writeRegister(REG_FRF_LSB, frfs)
 
 	def setSpreadingFactor(self, sf):
 		sf = min(max(sf, 6), 12)
@@ -329,8 +327,9 @@ class SX127x:
 	def _handleOnReceive(self, event_source):
 		self.acquire_lock(True)			  # lock until TX_Done
 		irqFlags = self.getIrqFlags()
+		irqBad = IRQ_PAYLOAD_CRC_ERROR_MASK | IRQ_RX_TIME_OUT_MASK
 		if (irqFlags & IRQ_RX_DONE_MASK) and \
-		   ((irqFlags & IRQ_PAYLOAD_CRC_ERROR_MASK) == 0) and \
+		   ((irqFlags & irqBad) == 0) and \
 			self._onReceive:
 			# it's a receive data ready interrupt
 			payload = self.read_payload()
@@ -338,11 +337,12 @@ class SX127x:
 			self._onReceive(self, payload)
 		else:
 			self.acquire_lock(False)			 # unlock in any case.
-			print("!got Receive interrupt but no data.")
 			if not irqFlags & IRQ_RX_DONE_MASK:
 				print("not rx done mask")
 			elif (irqFlags & IRQ_PAYLOAD_CRC_ERROR_MASK) != 0:
 				print("crc error")
+			elif (irqFlags & IRQ_RX_TIME_OUT_MASK) != 0:
+				print("receive timeout error")
 			else:
 				print("no receive method defined")
 
@@ -350,15 +350,16 @@ class SX127x:
 	def _handleOnTransmit(self, event_source):
 		self.acquire_lock(True)			  # lock until flags cleared
 		irqFlags = self.getIrqFlags()
-		self.acquire_lock(False)			 # unlock
 		if irqFlags & IRQ_TX_DONE_MASK:
 			# it's a transmit finish interrupt
 			self._prepIrqHandler(None)	   # disable handler since we're done
+			self.acquire_lock(False)			 # unlock
 			if self._onTransmit:
 				self._onTransmit()
 			else:
 				print("transmit callback but no callback method")
 		else:
+			self.acquire_lock(False)			 # unlock
 			print("transmit callback but not txdone: " + str(irqFlags))
 
 	def receivedPacket(self, size=0):
