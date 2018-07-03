@@ -32,9 +32,11 @@ class LoraUtil:
 		self.spic = spicontrol.SpiControl()
 		# init lora
 		params = {'tx_power_level': 5,
-            'signal_bandwidth': 125E3,
-            'spreading_factor': 7,
-            'coding_rate': 5,
+			'frequency' : 918e6,
+            'signal_bandwidth': 62500,
+            'spreading_factor': 9,
+            'coding_rate': 8,
+			'power_pin' : 1,		# boost pin is 1, non-boost pin is 0
             'enable_CRC': True}
 		self.lora = sx127x.SX127x(spiControl=self.spic, parameters=params)
 		self.spic.initLoraPins() # init pins
@@ -71,7 +73,8 @@ class LoraUtil:
 		self.lora.write(bytearray([value]))
 
 	def sendPacket(self, dstAddress, localAddress, outGoing):
-		'''send a packet of header info and a bytearray to dstAddress'''
+		'''send a packet of header info and a bytearray to dstAddress
+			asynchronous. Returns immediately. '''
 		try:
 			self.linecounter = self.linecounter + 1
 			self.doneTransmit = False
@@ -82,17 +85,26 @@ class LoraUtil:
 			self.writeInt(len(outGoing))
 			self.lora.write(outGoing)
 			self.lora.endPacket()
-			slt = 0
-			while (not self.doneTransmit) and (slt < 50):
-				sleep(.1)
-				slt = slt + 1
-			if slt == 50:
-				print("Transmit timeout")
 		except Exception as ex:
 			print(str(ex))
 
+	def setFrequency(self, frequency) :
+		''' set the center frequency of the device. 902-928 for 915 band '''
+		self.lora.setFrequency(frequency)
+
+	def sleep(self) :
+		''' sleep the device '''
+		self.lora.sleep()
+
+	def reset(self) :
+		''' reset the device '''
+		self.spic.initLoraPins() # init pins
+
+	def isPacketSent(self) :
+		return self.doneTransmit
+
 	def isPacketAvailable(self):
-		# convert to bool result from none, true
+		''' convert to bool result from none, true '''
 		return True if self.packet else False
 
 	def readPacket(self):

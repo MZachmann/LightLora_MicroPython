@@ -1,13 +1,15 @@
 from time import sleep
 from machine import Pin, SPI
 
-''' Pin assignments for SPI and LoRa board'''
-PIN_ID_LORA_RESET = 27
-PIN_ID_LORA_SS = 12
+''' Pin assignments for SPI and LoRa board
+	This refers to a Feather ESP32 Wroom board using
+	12,27,33 for IRQ,CS,RST respectively '''
+PIN_ID_LORA_RESET = 33
+PIN_ID_LORA_SS = 27
 PIN_ID_SCK = 5
 PIN_ID_MOSI = 18
 PIN_ID_MISO = 19
-PIN_ID_LORA_DIO0 = 33
+PIN_ID_LORA_DIO0 = 12
 
 # loraconfig is the project definition for pins <-> hardware
 

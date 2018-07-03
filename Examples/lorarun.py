@@ -1,13 +1,29 @@
 import time
 from LightLora import lorautil
+
+lr = lorautil.LoraUtil()	# the LoraUtil object
+
 # a really ugly example using the LightLora micropython library
 # do:
 #      import lorarun
 #      lorarun.doreader()
 # to start running a loop test. Ctrl-C to stop.
 # this ping-pongs fully with the Arduino LightLora example
+
+def syncSend(lutil, txt) :
+	''' send a packet synchronously '''
+	lutil.sendPacket(0xff, 0x41, txt.encode())
+	sendTime = 0
+	while not lutil.isPacketSent() :
+		time.sleep(.1)
+		# after 2 seconds of waiting for send just give up
+		sendTime = sendTime + 1
+		if sendTime > 19 :
+			break
+
+# this ping-pongs fully with the Arduino LightLora example
 def doreader():
-	lr = lorautil.LoraUtil()	# the LoraUtil object
+	global lr
 	endt = time.time() + 2
 	startTime = time.time()
 	ctr = 0
@@ -17,8 +33,8 @@ def doreader():
 			try:
 				packet = lr.readPacket()
 				if packet and packet.msgTxt:
-					txt = packet.msgTxt
-					lr.sendPacket(0xff, 0x41, (txt + str(ctr)).encode())
+					txt = packet.msgTxt + str(ctr)
+					syncSend(lr, txt)
 					endt = time.time() + 4
 					etime = str(int(time.time() - startTime))
 					print("@" + etime + "r=" + str(txt))
@@ -26,7 +42,8 @@ def doreader():
 			except Exception as ex:
 				print(str(ex))
 		if time.time() > endt:
-			lr.sendPacket(0xff, 0x41, ('P Lora' + str(ctr)).encode())
+			txt = 'P Lora' + str(ctr)
+			syncSend(lr, txt)
 			ctr = ctr + 1
 			endt = time.time() + 4
 		else:

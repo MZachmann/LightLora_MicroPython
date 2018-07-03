@@ -76,8 +76,9 @@ IRQ_RX_TIME_OUT_MASK = 0x80
 MAX_PKT_LENGTH = 255
 
 # pass in non-default parameters for any/all options in the constructor parameters argument
-DEFAULT_PARAMETERS = {'frequency': 915E6, 'tx_power_level': 2, 'signal_bandwidth': 125E3,
+DEFAULT_PARAMETERS = {'frequency': 915E6, 'tx_power_level': 2, 'signal_bandwidth': 125000,
 					  'spreading_factor': 7, 'coding_rate': 5, 'preamble_length': 8,
+					  'power_pin' : PA_OUTPUT_PA_BOOST_PIN,
 					  'implicitHeader': False, 'sync_word': 0x12, 'enable_CRC': False}
 
 REQUIRED_VERSION = 0x12
@@ -127,7 +128,8 @@ class SX127x:
 		# set auto AGC
 		self.writeRegister(REG_MODEM_CONFIG_3, 0x04)
 
-		self.setTxPower(self._useParam('tx_power_level'))
+		powerpin = self._useParam('power_pin')
+		self.setTxPower(self._useParam('tx_power_level'), powerpin)
 		self._implicitHeaderMode = None
 		self.implicitHeaderMode(self._useParam('implicitHeader'))
 		self.setSpreadingFactor(self._useParam('spreading_factor'))
@@ -254,7 +256,7 @@ class SX127x:
 		self.writeRegister(REG_MODEM_CONFIG_2, (self.readRegister(REG_MODEM_CONFIG_2) & 0x0f) | ((sf << 4) & 0xf0))
 
 	def setSignalBandwidth(self, sbw):
-		bins = (7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3, 41.7E3, 62.5E3, 125E3, 250E3)
+		bins = (7800, 10400, 15600, 20800, 31250, 41700, 62500, 125000, 250000, 500000)
 		bw = 9
 		for i in range(len(bins)):
 			if sbw <= bins[i]:

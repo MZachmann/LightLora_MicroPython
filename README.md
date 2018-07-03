@@ -47,3 +47,14 @@ The ports for the LoRa device are set in spicontrol.py for now.
 
 The `_doTransmit` and `_doReceive` methods in lorautil.LoraUtil are the callbacks on interrupt.
 
+Changelog:
+Jul 3, 2018 -
+--
+* In lorarun.py (the example) make lr a global so comm options can be changed manually before calling doreader()
+* Add a synchronous send method in lorarun.py since the sendPacket method is now asynchronous
+* add reset, sleep, isPacketSent, and setFrequency methods to LoraUtil to mimic the Arduino implementation
+* add power_pin option to sx127x parameter set
+* use signal bandwidth as integer
+
+
+
