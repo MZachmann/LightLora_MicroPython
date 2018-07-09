@@ -33,11 +33,11 @@ class LoraUtil:
 		# init lora
 		params = {'tx_power_level': 5,
 			'frequency' : 918e6,
-            'signal_bandwidth': 62500,
-            'spreading_factor': 9,
-            'coding_rate': 8,
+			'signal_bandwidth': 62500,
+			'spreading_factor': 9,
+			'coding_rate': 8,
 			'power_pin' : 1,		# boost pin is 1, non-boost pin is 0
-            'enable_CRC': True}
+			'enable_CRC': True}
 		self.lora = sx127x.SX127x(spiControl=self.spic, parameters=params)
 		self.spic.initLoraPins() # init pins
 		self.lora.init()

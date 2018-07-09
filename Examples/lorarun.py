@@ -1,18 +1,22 @@
 import time
 from LightLora import lorautil
 
+isSendSynchro = False # is send synchronous?
+
 lr = lorautil.LoraUtil()	# the LoraUtil object
 
 # a really ugly example using the LightLora micropython library
 # do:
-#      import lorarun
-#      lorarun.doreader()
+#	  import lorarun
+#	  lorarun.doreader()
 # to start running a loop test. Ctrl-C to stop.
 # this ping-pongs fully with the Arduino LightLora example
 
 def syncSend(lutil, txt) :
 	''' send a packet synchronously '''
 	lutil.sendPacket(0xff, 0x41, txt.encode())
+	if(isSendSynchro) :
+		return # we're done here if sendpacket is synchronouse
 	sendTime = 0
 	while not lutil.isPacketSent() :
 		time.sleep(.1)
