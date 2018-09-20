@@ -22,14 +22,15 @@ class LoraUtil:
 		isPacketAvailable -> do we have a packet available?
 		readPacket -> get the latest packet
 	'''
-	def __init__(self):
+	# these default pin values are for a Heltec LoRa module
+	def __init__(self, lora_reset=14, lora_ss=18, sck=5, mosi=27, miso=19, lora_dio0=26):
 		# just be neat and init variables in the __init__
 		self.linecounter = 0
 		self.packet = None
 		self.doneTransmit = False
 
 		# init spi
-		self.spic = spicontrol.SpiControl()
+		self.spic = spicontrol.SpiControl(lora_reset, lora_ss, sck, mosi, miso, lora_dio0)
 		# init lora
 		params = {'tx_power_level': 5,
 			'frequency' : 918e6,
