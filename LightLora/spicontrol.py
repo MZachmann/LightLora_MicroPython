@@ -1,35 +1,19 @@
 from time import sleep
 from machine import Pin, SPI
 
-''' Pin assignments for SPI and LoRa board
-	This refers to a Feather ESP32 Wroom board using
-	12,27,33 for IRQ,CS,RST respectively '''
-# PIN_ID_LORA_RESET = 33
-# PIN_ID_LORA_SS = 27
-# PIN_ID_SCK = 5
-# PIN_ID_MOSI = 18
-# PIN_ID_MISO = 19
-# PIN_ID_LORA_DIO0 = 12
-''' this is for a Heltec LoRa module '''
-PIN_ID_LORA_RESET = 14
-PIN_ID_LORA_SS = 18
-PIN_ID_SCK = 5
-PIN_ID_MOSI = 27
-PIN_ID_MISO = 19
-PIN_ID_LORA_DIO0 = 26
-
 # loraconfig is the project definition for pins <-> hardware
 
 class SpiControl:
 	''' simple higher level spi stuff '''
-	def __init__(self):
+	def __init__(self, lora_reset, lora_ss, sck, mosi, miso, lora_dio0):
 		self.spi = SPI(1, baudrate=5000000, polarity=0, phase=0, bits=8,
 				 firstbit=SPI.MSB,
-				 sck=Pin(PIN_ID_SCK, Pin.OUT),
-				 mosi=Pin(PIN_ID_MOSI, Pin.OUT),
-				 miso=Pin(PIN_ID_MISO, Pin.IN))
-		self.pinss = Pin(PIN_ID_LORA_SS, Pin.OUT)
-		self.pinrst = Pin(PIN_ID_LORA_RESET, Pin.OUT)
+				 sck=Pin(sck, Pin.OUT),
+				 mosi=Pin(mosi, Pin.OUT),
+				 miso=Pin(miso, Pin.IN))
+		self.pinss = Pin(lora_ss, Pin.OUT)
+		self.pinrst = Pin(lora_reset, Pin.OUT)
+		self.irqPin = Pin(lora_dio0, Pin.IN)
 
 	# sx127x transfer is always write two bytes while reading the second byte
 	# a read doesn't write the second byte. a write returns the prior value.
@@ -45,8 +29,7 @@ class SpiControl:
 	# this doesn't belong here but it doesn't really belong anywhere, so put
 	# it with the other loraconfig-ed stuff
 	def getIrqPin(self):
-		irqPin = Pin(PIN_ID_LORA_DIO0, Pin.IN)
-		return irqPin
+		return self.irqPin
 
 	# this doesn't belong here but it doesn't really belong anywhere, so put
 	# it with the other loraconfig-ed stuff
