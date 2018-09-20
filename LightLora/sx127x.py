@@ -296,10 +296,18 @@ class SX127x:
 	def _prepIrqHandler(self, handlefn):
 		''' attach the handler to the irq pin, disable if None '''
 		if self.irqPin:
+			loboris = not callable(getattr(self.irqPin, "irq", None))
 			if handlefn:
-				self.irqPin.irq(handler=handlefn, trigger=Pin.IRQ_RISING)
+				if loboris:
+					self.irqPin.init(handler=handlefn, trigger=Pin.IRQ_RISING)
+				else:
+					self.irqPin.irq(handler=handlefn, trigger=Pin.IRQ_RISING)
 			else:
-				self.irqPin.irq(handler=None, trigger=0)
+				if loboris:
+					self.irqPin.init(handler=None)
+				else:
+					self.irqPin.irq(handler=handlefn, trigger=0)
+
 
 	def onReceive(self, callback):
 		''' establish a callback function for receive interrupts'''
