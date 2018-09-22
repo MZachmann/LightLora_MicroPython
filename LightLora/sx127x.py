@@ -103,6 +103,7 @@ class SX127x:
 			self._lock = True
 		self._spiControl = spiControl   # the spi wrapper - see spicontrol.py
 		self.irqPin = spiControl.getIrqPin() # a way to need loracontrol only in spicontrol
+		self.isLoboris = not callable(getattr(self.irqPin, "irq", None)) # micropython vs loboris
 
 	# if we passed in a param use it, else use default
 	def _useParam(self, who):
@@ -296,15 +297,14 @@ class SX127x:
 	def _prepIrqHandler(self, handlefn):
 		''' attach the handler to the irq pin, disable if None '''
 		if self.irqPin:
-			loboris = not callable(getattr(self.irqPin, "irq", None))
 			if handlefn:
-				if loboris:
+				if self.isLoboris:
 					self.irqPin.init(handler=handlefn, trigger=Pin.IRQ_RISING)
 				else:
 					self.irqPin.irq(handler=handlefn, trigger=Pin.IRQ_RISING)
 			else:
-				if loboris:
-					self.irqPin.init(handler=None)
+				if self.isLoboris:
+					self.irqPin.init(handler=None, trigger=0)
 				else:
 					self.irqPin.irq(handler=handlefn, trigger=0)
 
