@@ -22,15 +22,14 @@ PIN_ID_LORA_DIO0 = 12
 
 class SpiControl:
 	''' simple higher level spi stuff '''
-	def __init__(self, lora_reset, lora_ss, sck, mosi, miso, lora_dio0):
+	def __init__(self):
 		self.spi = SPI(1, baudrate=5000000, polarity=0, phase=0, bits=8,
 				 firstbit=SPI.MSB,
-				 sck=Pin(sck, Pin.OUT),
-				 mosi=Pin(mosi, Pin.OUT),
-				 miso=Pin(miso, Pin.IN))
-		self.pinss = Pin(lora_ss, Pin.OUT)
-		self.pinrst = Pin(lora_reset, Pin.OUT)
-		self.irqPin = Pin(lora_dio0, Pin.IN)
+				 sck=Pin(PIN_ID_SCK, Pin.OUT),
+				 mosi=Pin(PIN_ID_MOSI, Pin.OUT),
+				 miso=Pin(PIN_ID_MISO, Pin.IN))
+		self.pinss = Pin(PIN_ID_LORA_SS, Pin.OUT)
+		self.pinrst = Pin(PIN_ID_LORA_RESET, Pin.OUT)
 
 	# sx127x transfer is always write two bytes while reading the second byte
 	# a read doesn't write the second byte. a write returns the prior value.
@@ -46,7 +45,8 @@ class SpiControl:
 	# this doesn't belong here but it doesn't really belong anywhere, so put
 	# it with the other loraconfig-ed stuff
 	def getIrqPin(self):
-		return self.irqPin
+		irqPin = Pin(PIN_ID_LORA_DIO0, Pin.IN)
+		return irqPin
 
 	# this doesn't belong here but it doesn't really belong anywhere, so put
 	# it with the other loraconfig-ed stuff
