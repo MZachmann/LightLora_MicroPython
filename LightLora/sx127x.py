@@ -24,6 +24,7 @@ REG_FRF_MSB = 0x06
 REG_FRF_MID = 0x07
 REG_FRF_LSB = 0x08
 REG_PA_CONFIG = 0x09
+REG_OCP = 0x0b # overcurrent protection
 REG_LNA = 0x0c
 REG_FIFO_ADDR_PTR = 0x0d
 
@@ -52,6 +53,8 @@ REG_DETECTION_THRESHOLD = 0x37
 REG_SYNC_WORD = 0x39
 REG_DIO_MAPPING_1 = 0x40
 REG_VERSION = 0x42
+REG_PA_DAC = 0x4d
+
 
 # modes
 MODE_LONG_RANGE_MODE = 0x80  # bit 7: 1 => LoRa mode
@@ -65,6 +68,9 @@ MODE_RX_SINGLE = 0x05
 
 # PA config
 PA_BOOST = 0x80
+
+# Low Data Rate flag
+LDO_FLAG = 8
 
 # IRQ masks
 IRQ_TX_DONE_MASK = 0x08
@@ -94,6 +100,8 @@ class SX127x:
 
 		self.name = name
 		self.parameters = parameters
+		self.bandwidth = 125000	# default bandwidth
+		self.spreading = 6	# default spreading factor
 		self._onReceive = onReceive	 # the onreceive function
 		self._onTransmit = onTransmit   # the ontransmit function
 		self.doAcquire = hasattr(_thread, 'allocate_lock') # micropython vs loboris
@@ -118,15 +126,16 @@ class SX127x:
 		# put in LoRa and sleep mode
 		self.sleep()
 
+		# set auto AGC before setting bandwidth and spreading factor
+		# because they'll set the low-data-rate flag bit
+		self.writeRegister(REG_MODEM_CONFIG_3, 0x04)
+
 		# config
 		self.setFrequency(self._useParam('frequency'))
 		self.setSignalBandwidth(self._useParam('signal_bandwidth'))
 
 		# set LNA boost
 		self.writeRegister(REG_LNA, self.readRegister(REG_LNA) | 0x03)
-
-		# set auto AGC
-		self.writeRegister(REG_MODEM_CONFIG_3, 0x04)
 
 		powerpin = self._useParam('power_pin')
 		self.setTxPower(self._useParam('tx_power_level'), powerpin)
@@ -235,9 +244,21 @@ class SX127x:
 			level = min(max(level, 0), 14)
 			self.writeRegister(REG_PA_CONFIG, 0x70 | level)
 		else:
-			# PA BOOST
-			level = min(max(level, 2), 17)
-			self.writeRegister(REG_PA_CONFIG, PA_BOOST | (level - 2))
+			# PA BOOST 2...20 are valid values
+			level = min(max(level, 2), 20)
+			dacValue = self.readRegister(REG_PA_DAC) & ~7
+			ocpValue = 0
+			if level > 17:
+				dacValue = dacValue | 7
+				ocpValue = 0x20 | 18 # 150 ma [-30 + 10*value]
+				level = level - 5    # normalize to 15 max
+			else:
+				dacValue = dacValue | 4
+				ocpValue = 11     # 100 mA [45 + 5*value]
+				level = level - 2 # normalize to 15 max
+			self.writeRegister(REG_PA_CONFIG, PA_BOOST | level)
+			self.writeRegister(REG_PA_DAC, dacValue)
+			self.writeRegister(REG_OCP, ocpValue)
 
 	# set the frequency band. passed in Hz
 	# Frf register setting = Freq / FSTEP where
@@ -251,18 +272,30 @@ class SX127x:
 
 	def setSpreadingFactor(self, sf):
 		sf = min(max(sf, 6), 12)
+		self.spreading = sf
 		self.writeRegister(REG_DETECTION_OPTIMIZE, 0xc5 if sf == 6 else 0xc3)
 		self.writeRegister(REG_DETECTION_THRESHOLD, 0x0c if sf == 6 else 0x0a)
 		self.writeRegister(REG_MODEM_CONFIG_2, (self.readRegister(REG_MODEM_CONFIG_2) & 0x0f) | ((sf << 4) & 0xf0))
+		self.setLdoFlag()
 
 	def setSignalBandwidth(self, sbw):
 		bins = (7800, 10400, 15600, 20800, 31250, 41700, 62500, 125000, 250000, 500000)
-		bw = 9
+		bw = 9 # default to 500000 max
 		for i in range(len(bins)):
 			if sbw <= bins[i]:
 				bw = i
 				break
+		self.bandwidth = bins[bw]
 		self.writeRegister(REG_MODEM_CONFIG_1, (self.readRegister(REG_MODEM_CONFIG_1) & 0x0f) | (bw << 4))
+		self.setLdoFlag()
+
+	def setLdoFlag(self):
+		''' set the low data rate flag. This must be 1 if symbol duration is > 16ms '''
+		symbolDuration = 1000 / (self.bandwidth / (1 << self.spreading))
+		config3 = self.readRegister(REG_MODEM_CONFIG_3) & ~LDO_FLAG
+		if symbolDuration > 16:
+			config3 = config3 | LDO_FLAG
+		self.writeRegister(REG_MODEM_CONFIG_3, config3)
 
 	def setCodingRate(self, denominator):
 		''' this takes a value of 5..8 as the denominator of 4/5, 4/6, 4/7, 5/8 '''

@@ -33,8 +33,8 @@ class LoraUtil:
 		self.spic = spicontrol.SpiControl(lora_reset, lora_ss, sck, mosi, miso, lora_dio0)
 		# init lora
 		params = {'tx_power_level': 5,
-			'frequency' : 918e6,
-			'signal_bandwidth': 62500,
+			'frequency' : 915e6,
+			'signal_bandwidth': 125000,
 			'spreading_factor': 9,
 			'coding_rate': 8,
 			'power_pin' : 1,		# boost pin is 1, non-boost pin is 0
