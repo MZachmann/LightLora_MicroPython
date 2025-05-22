@@ -1,0 +1,10 @@
+{
+  "urls": [
+    ["LightLora/__init__.py", "github:MZachmann/LightLora_MicroPython/LightLora/__init__.py"],
+    ["LightLora/lorautil.py", "github:MZachmann/LightLora_MicroPython/LightLora/lorautil.py"],
+    ["LightLora/spicontrol.py", "github:MZachmann/LightLora_MicroPython/LightLora/spicontrol.py"],
+    ["LightLora/sx127x.py", "github:MZachmann/LightLora_MicroPython/LightLora/sx127x.py"]
+  ],
+  "version": "1.0.0",
+  "deps": []
+}
